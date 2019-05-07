@@ -1,18 +1,39 @@
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE QuasiQuotes #-}
+
 module GMusicApi (
   getDataDirectory,
   getDefaultTokenFile,
-  getAccessToken
+  getAccessToken,
+  manager
 ) where
 
-import qualified Data.Text as T
-import Network.OAuth.OAuth2 (OAuth2Token)
+import GMusicApi.Types
+
+import Data.Aeson (FromJSON)
+import Data.ByteString
+import Data.Text (Text)
+import Network.HTTP.Client (newManager, Manager)
+import Network.HTTP.Client.TLS (tlsManagerSettings)
+import URI.ByteString
+import URI.ByteString.QQ
+import Network.OAuth.OAuth2 (OAuth2Token, OAuth2Result, accessToken, authGetJSON)
 import qualified Network.Google.OAuth2 (getAccessToken)
 import System.Directory
 import System.FilePath
 
-oauthClientId = T.pack "228293309116.apps.googleusercontent.com"
-oauthClientSecret = T.pack "GL1YV0XMp0RlL7ylCV3ilFz-"
-oauthScopes = map T.pack ["https://www.googleapis.com/auth/skyjam"]
+oauthClientId :: Text
+oauthClientId = "228293309116.apps.googleusercontent.com"
+oauthClientSecret :: Text
+oauthClientSecret = "GL1YV0XMp0RlL7ylCV3ilFz-"
+oauthScopes :: [Text]
+oauthScopes = ["https://www.googleapis.com/auth/skyjam"]
+
+manager :: IO Manager
+manager = newManager tlsManagerSettings
+
+createURL :: ByteString -> ByteString -> URI
+createURL locale = appendURIPath $ appendURIQuery [uri|https://mclients.googleapis.com/sj/v2.5/?dv=0&tier=aa|] [("hl", locale)]
 
 -- |Gets the default data directory for gmusicapi-haskell
 -- The directory will be created if it does not already exist
@@ -33,3 +54,18 @@ getDefaultTokenFile = do
 getAccessToken :: Maybe FilePath -- ^FilePath to check for existing token and write new one to
  -> IO OAuth2Token -- ^ OAuth2 token
 getAccessToken = Network.Google.OAuth2.getAccessToken oauthClientId oauthClientSecret oauthScopes
+
+appendURIPath :: URI -> ByteString -> URI
+appendURIPath base path = base { uriPath = append basePath path }
+  where basePath = uriPath base
+
+appendURIQuery :: URI -> [(ByteString, ByteString)] -> URI
+appendURIQuery base query = base { uriQuery = Query { queryPairs = baseQuery ++ query} }
+  where baseQuery = queryPairs $ uriQuery base
+
+getDeviceManagementInfo :: FromJSON err => Manager -> OAuth2Token -> IO (OAuth2Result err (ListData DeviceInfo))
+getDeviceManagementInfo mgr oauthToken = authGetJSON mgr token $ createURL "en_US" "devicemanagementinfo"
+  where token = accessToken oauthToken
+
+--getAllSongs :: FromJSON err => Manager -> OAuth2Token -> IO (OAuth2Result err (ListData Track))
+--getAllSongs mgr oauthToken = authGetJSON mgr token $ createURL "en_US"
