@@ -21,9 +21,9 @@ discNumber :: Integer,
 totalDiscCount :: Maybe Integer,
 estimatedSize :: Maybe Text,
 trackType :: Maybe Text,
-storeId :: Maybe UUID,
-albumId :: UUID,
-artistId :: Maybe [UUID],
+storeId :: Maybe Text,
+albumId :: Text,
+artistId :: Maybe [Text],
 nid :: Maybe Text,
 trackAvailableForPurchase :: Maybe Bool,
 albumAvailableForPurchase :: Maybe Bool,
@@ -44,7 +44,7 @@ comment :: Maybe Text,
 beatsPerMinute :: Maybe Integer,
 recentTimestamp :: Maybe ZonedTime,
 clientId :: Maybe Text,
-id :: Maybe UUID
+id :: Maybe Text
 ```
 
 ### Playlist
@@ -59,7 +59,7 @@ ownerName :: Maybe Text,
 accessControlled :: Maybe Bool,
 shareState :: Maybe ShareState,
 creationTimestamp :: Maybe ZonedTime,
-id :: Maybe UUID,
+id :: Maybe Text,
 albumArtRef :: Maybe [URLObject],
 description :: Maybe Text,
 explicitType :: Maybe Text,
@@ -69,8 +69,8 @@ contentType :: Maybe Text
 ### PlaylistEntry
 ```hs
 id :: Text,
-clientId :: UUID,
-playlistId :: UUID,
+clientId :: Text,
+playlistId :: Text,
 absolutePosition :: Text,
 trackId :: Text,
 creationTimestamp :: ZonedTime,
@@ -132,7 +132,7 @@ colorStyles :: ImageColorStyles
 
 ### Video
 ```hs
-id :: UUID,
+id :: Text,
 title :: Maybe Text,
 thumbnails :: Maybe [Thumbnail]
 ```
@@ -149,9 +149,9 @@ height :: Integer
 name :: Text,
 albumArtist :: Text,
 albumArtRef :: Maybe URI,
-albumId :: UUID,
+albumId :: Text,
 artist :: Maybe Text,
-artistId :: [UUID],
+artistId :: [Text],
 year :: Integer,
 tracks :: Maybe [Track],
 description :: Maybe Text,
@@ -167,7 +167,7 @@ name :: Text,
 artistArtRef :: Maybe URI,
 artistArtRefs :: Maybe [Image],
 artistBio :: Maybe Text,
-artistId :: Maybe UUID,
+artistId :: Maybe Text,
 albums :: Maybe [Album],
 topTracks :: Maybe [Track],
 totalAlbums :: Maybe Integer, -- from total_albums
@@ -179,8 +179,8 @@ relatedArtists :: Maybe [Artist] -- from related_artists
 ```hs
 id :: Maybe Text,
 name :: Maybe Text,
-children :: Maybe [UUID], -- or Text?
-parentId :: Maybe UUID,
+children :: Maybe [Text], -- or Text?
+parentId :: Maybe Text,
 images :: Maybe [URLObject]
 ```
 
@@ -191,12 +191,12 @@ StationMetadataSeed = ArtistMetadataSeed {artist :: Artist} | GenreMetadataSeed 
 
 ### StationSeed
 ```hs
-StationSeed = AlbumSeed  {albumId  :: UUID}
-            | ArtistSeed {artistId :: UUID, metadataSeed :: ArtistMetadataSeed}
-            | GenreSeed  {genreId  :: UUID, metadataSeed :: GenreMetadataSeed}
-            | TrackSeed  {trackId  :: UUID},
-            | TrackLockerSeed {trackLockerId :: UUID},
-            | CuratedStationSeed {curatedStationId :: UUID}
+StationSeed = AlbumSeed  {albumId  :: Text}
+            | ArtistSeed {artistId :: Text, metadataSeed :: ArtistMetadataSeed}
+            | GenreSeed  {genreId  :: Text, metadataSeed :: GenreMetadataSeed}
+            | TrackSeed  {trackId  :: Text},
+            | TrackLockerSeed {trackLockerId :: Text},
+            | CuratedStationSeed {curatedStationId :: Text}
 ```
 
 ### StationTrack
@@ -211,12 +211,12 @@ name :: Text,
 deleted :: Maybe Bool,
 lastModifiedTimestamp :: Maybe ZonedTime,
 recentTimestamp :: Maybe ZonedTime,
-clientId :: Maybe UUID,
+clientId :: Maybe Text,
 sessionToken :: Maybe Text,
 -- skipEventHistory :: [???], -- TODO
 seed :: StationSeed,
 stationSeeds :: [StationSeed],
-id :: Maybe UUID,
+id :: Maybe Text,
 description :: Maybe Text,
 tracks :: Maybe [Track],
 imageUrls :: Maybe [Image],
@@ -233,7 +233,7 @@ keyword :: [Text]
 
 ### ListenNowAlbum
 ```hs
-artistMetajamId :: UUID, -- from _
+artistMetajamId :: Text, -- from _
 artistName :: Text, -- from _
 artistProfileImage :: URLObject, -- from _
 description :: Text,
@@ -270,7 +270,7 @@ radioStation :: Maybe ListenNowStation -- from radio_station
 
 ### PodcastGenre
 ```hs
-id :: UUID,
+id :: Text,
 displayName :: Text,
 subgroups :: Maybe [Genre]
 ```
@@ -282,12 +282,12 @@ author :: Maybe Text,
 deleted :: Maybe Text,
 description :: Maybe Text,
 durationMillis :: Text,
-episodeId :: UUID,
+episodeId :: Text,
 explicitType :: Text,
 fileSize :: Text,
 playbackPositionMillis :: Maybe Text,
 publicationTimestampMillis :: Maybe Text,
-seriesId :: UUID,
+seriesId :: Text,
 seriesTitle :: Text,
 title :: Text
 ```
@@ -302,7 +302,7 @@ description :: Maybe Text,
 episodes :: Maybe [PodcastEpisode],
 explicitType :: Text,
 link :: Maybe Text,
-seriesId :: UUID,
+seriesId :: Text,
 title :: Text,
 totalNumEpisodes :: Integer,
 userPreferences :: PodcastSeriesUserPreferences
@@ -318,7 +318,7 @@ subscribed :: Bool
 ### Situation
 ```hs
 description :: Text,
-id :: UUID,
+id :: Text,
 imageUrl :: Maybe URI,
 title :: Text,
 wideImageUrl :: Maybe URI,
@@ -329,7 +329,7 @@ situations :: Maybe [Situation]
 ### SearchResultClusterInfo
 ```hs
 category :: Text,
-id :: UUID,
+id :: Text,
 type :: Text
 ```
 
@@ -353,4 +353,4 @@ entries :: Maybe [SearchResult],
 resultToken :: Maybe Text
 ```
 
-## Functions
+## API Functions
