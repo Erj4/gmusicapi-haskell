@@ -352,3 +352,5 @@ displayName :: Maybe Text,
 entries :: Maybe [SearchResult],
 resultToken :: Maybe Text
 ```
+
+## Functions
