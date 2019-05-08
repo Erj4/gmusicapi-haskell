@@ -1,5 +1,7 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DuplicateRecordFields #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module GMusicApi.Types (
   ListData,
@@ -7,7 +9,9 @@ module GMusicApi.Types (
 ) where
 
 import Data.Aeson.Types
+import Data.Aeson.TH(deriveJSON)
 import GHC.Generics
+import GMusicApi.Types.Utils
 
 newtype ListData a = ListData [a] deriving (Eq, Show)
 instance FromJSON a => FromJSON (ListData a) where
@@ -16,17 +20,10 @@ instance FromJSON a => FromJSON (ListData a) where
     ListData <$> jsonData .: "items"
 
 data DeviceInfo = DeviceInfo {
-  deviceId :: String,
+  id :: String,
   friendlyName :: String,
-  deviceType :: String,
+  objectType :: String,
   lastAccessedTimeMs :: String
 } deriving (Eq, Show)
-instance FromJSON DeviceInfo where
-  parseJSON = withObject "DeviceInfo" $ \json -> DeviceInfo
-    <$> json .: "id"
-    <*> json .: "friendlyName"
-    <*> json .: "type"
-    <*> json .: "lastAccessedTimeMs"
-
-
+$(deriveJSON renameTypeOptions ''DeviceInfo)
 
