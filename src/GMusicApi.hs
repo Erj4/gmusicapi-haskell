@@ -5,35 +5,58 @@ module GMusicApi (
   getDataDirectory,
   getDefaultTokenFile,
   getAccessToken,
-  manager
+  getManager,
+  getDeviceManagementInfo
 ) where
 
-import GMusicApi.Types
+import qualified GMusicApi.Types as API
 
+import Control.Exception.Safe (handleIO, throwString)
 import Data.Aeson (FromJSON)
-import Data.ByteString
+import Data.ByteString (ByteString, pack, unpack)
+import Data.ByteString.Lazy as Lazy (ByteString)
+import qualified Data.ByteString.Char8 as C8
 import Data.Text (Text)
+import qualified Data.Text as T
+import Data.Text.Encoding
 import Network.HTTP.Client (newManager, Manager)
 import Network.HTTP.Client.TLS (tlsManagerSettings)
 import URI.ByteString
 import URI.ByteString.QQ
-import Network.OAuth.OAuth2 (OAuth2Token, OAuth2Result, accessToken, authGetJSON)
-import qualified Network.Google.OAuth2 (getAccessToken)
+import Network.OAuth.OAuth2
 import System.Directory
 import System.FilePath
 
-oauthClientId :: Text
-oauthClientId = "228293309116.apps.googleusercontent.com"
-oauthClientSecret :: Text
-oauthClientSecret = "GL1YV0XMp0RlL7ylCV3ilFz-"
-oauthScopes :: [Text]
-oauthScopes = ["https://www.googleapis.com/auth/skyjam"]
+clientId :: Text
+clientId = "228293309116.apps.googleusercontent.com"
+clientSecret :: Text
+clientSecret = "GL1YV0XMp0RlL7ylCV3ilFz-"
+scopes :: [Text]
+scopes = ["https://www.googleapis.com/auth/skyjam"]
 
-manager :: IO Manager
-manager = newManager tlsManagerSettings
+oauth2 :: OAuth2
+oauth2 = OAuth2 {
+  oauthClientId = clientId,
+  oauthClientSecret = Just clientSecret,
+  oauthOAuthorizeEndpoint = appendQueryParams
+    [
+      ("redirect_uri", "urn:ietf:wg:oauth:2.0:oob"),
+      ("scope", encodeUtf8 $ T.intercalate (T.pack " ") scopes)
+    ]
+    [uri|https://accounts.google.com/o/oauth2/auth|],
+  oauthAccessTokenEndpoint = appendQueryParams
+    [
+      ("redirect_uri", "urn:ietf:wg:oauth:2.0:oob")
+    ]
+    [uri|https://www.googleapis.com/oauth2/v3/token|],
+  oauthCallback = Nothing
+}
 
-createURL :: ByteString -> ByteString -> URI
-createURL locale = appendURIPath $ appendURIQuery [uri|https://mclients.googleapis.com/sj/v2.5/?dv=0&tier=aa|] [("hl", locale)]
+getManager :: IO Manager
+getManager = newManager tlsManagerSettings
+
+createURL :: Text -> Text -> URI
+createURL locale = appendURIPath $ appendURIQuery [uri|https://mclients.googleapis.com/sj/v2.5/?dv=0&tier=aa|] ("hl", locale)
 
 -- |Gets the default data directory for gmusicapi-haskell
 -- The directory will be created if it does not already exist
@@ -53,17 +76,27 @@ getDefaultTokenFile = do
 -- This will be loaded from the given file if present, or otherwise it will be obtained from the Google OAuth2 API
 getAccessToken :: Maybe FilePath -- ^FilePath to check for existing token and write new one to
  -> IO OAuth2Token -- ^ OAuth2 token
-getAccessToken = Network.Google.OAuth2.getAccessToken oauthClientId oauthClientSecret oauthScopes
+getAccessToken fp = do
+  putStrLn $ "Get verification code from " <> ( C8.unpack $ serializeURIRef' $ authorizationUrl oauth2)
+  code <- getLine
+  manager <- getManager
+  token <- fetchAccessToken manager oauth2 $ ExchangeToken $ T.pack code
+  fromEither token
+  where
+    fromEither :: Show a => Either a b -> IO b
+    fromEither = either (throwString . show) pure
 
-appendURIPath :: URI -> ByteString -> URI
-appendURIPath base path = base { uriPath = append basePath path }
-  where basePath = uriPath base
+appendURIPath :: URI -> Text -> URI
+appendURIPath base path = base { uriPath = encodeUtf8 $ T.append basePath path }
+  where basePath = decodeUtf8 $ uriPath base
 
-appendURIQuery :: URI -> [(ByteString, ByteString)] -> URI
-appendURIQuery base query = base { uriQuery = Query { queryPairs = baseQuery ++ query} }
-  where baseQuery = queryPairs $ uriQuery base
+appendURIQuery :: URI -> (Text, Text) -> URI
+appendURIQuery base (key, val) = base { uriQuery = Query { queryPairs = query : baseQuery} }
+  where
+    baseQuery = queryPairs $ uriQuery base
+    query = (encodeUtf8 key, encodeUtf8 val)
 
-getDeviceManagementInfo :: FromJSON err => Manager -> OAuth2Token -> IO (OAuth2Result err (ListData DeviceInfo))
+getDeviceManagementInfo :: Manager -> OAuth2Token -> IO (Either Lazy.ByteString (API.ListData API.DeviceInfo))
 getDeviceManagementInfo mgr oauthToken = authGetJSON mgr token $ createURL "en_US" "devicemanagementinfo"
   where token = accessToken oauthToken
 
